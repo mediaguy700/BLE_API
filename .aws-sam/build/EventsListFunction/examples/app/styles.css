@@ -1,0 +1,151 @@
+* {
+  box-sizing: border-box;
+}
+body {
+  font-family: system-ui, -apple-system, sans-serif;
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1rem;
+  background: #1a1b26;
+  color: #c0caf5;
+}
+header {
+  margin-bottom: 1.5rem;
+}
+header h1 {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.5rem;
+  color: #7aa2f7;
+}
+.config {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+}
+.config label { margin-right: 0.25rem; }
+.config input[type="text"] {
+  width: 320px;
+  padding: 0.4rem 0.6rem;
+  background: #24283b;
+  border: 1px solid #414868;
+  border-radius: 4px;
+  color: #c0caf5;
+}
+.config button {
+  padding: 0.4rem 0.8rem;
+  background: #7aa2f7;
+  color: #1a1b26;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.config button:hover { background: #89b4fa; }
+
+.panel {
+  background: #24283b;
+  border-radius: 8px;
+  padding: 1rem 1.25rem;
+  margin-bottom: 1.25rem;
+  border: 1px solid #414868;
+}
+.panel h2 {
+  margin: 0 0 0.35rem 0;
+  font-size: 1.1rem;
+  color: #bb9af7;
+}
+.hint {
+  margin: 0 0 0.75rem 0;
+  font-size: 0.85rem;
+  color: #a9b1d6;
+}
+.actions, .filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.75rem;
+}
+.filters select { min-width: 120px; }
+button {
+  padding: 0.45rem 0.9rem;
+  background: #414868;
+  color: #c0caf5;
+  border: 1px solid #565f89;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+button:hover {
+  background: #565f89;
+}
+button.primary { background: #7aa2f7; color: #1a1b26; border-color: #7aa2f7; }
+button.primary:hover { background: #89b4fa; }
+button.danger { background: #f7768e; color: #1a1b26; border-color: #f7768e; }
+button.danger:hover { background: #ff9db4; }
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+.card {
+  background: #1a1b26;
+  border: 1px solid #414868;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  font-size: 0.9rem;
+}
+.card .row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.35rem;
+}
+.card .row:last-child { margin-bottom: 0; }
+.card .key { color: #a9b1d6; }
+.card .value { color: #9ece6a; }
+.card .actions-inline { margin-top: 0.5rem; display: flex; gap: 0.4rem; }
+.card .actions-inline button { padding: 0.25rem 0.5rem; font-size: 0.8rem; }
+
+dialog {
+  background: #24283b;
+  border: 1px solid #414868;
+  border-radius: 8px;
+  color: #c0caf5;
+  padding: 1.25rem;
+  max-width: 90vw;
+}
+dialog::backdrop { background: rgba(0,0,0,0.6); }
+dialog h3 { margin: 0 0 0.75rem 0; color: #bb9af7; }
+dialog label {
+  display: block;
+  margin-bottom: 0.6rem;
+  font-size: 0.9rem;
+}
+dialog label input, dialog label select {
+  display: block;
+  width: 100%;
+  margin-top: 0.2rem;
+  padding: 0.4rem 0.6rem;
+  background: #1a1b26;
+  border: 1px solid #414868;
+  border-radius: 4px;
+  color: #c0caf5;
+}
+.dialog-actions {
+  margin-top: 1rem;
+  display: flex;
+  gap: 0.5rem;
+}
+.dialog-actions button[type="submit"] { background: #7aa2f7; color: #1a1b26; border: none; }
+.event-form .form-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 0.5rem 1rem;
+  margin-bottom: 0.75rem;
+}
+.event-form .form-grid label { margin-bottom: 0; }
+.empty { color: #a9b1d6; font-style: italic; padding: 0.5rem 0; }
+.error { color: #f7768e; font-size: 0.9rem; margin-top: 0.25rem; }

@@ -1,0 +1,12 @@
+# Copy to samconfig.toml and customize. Used by: sam deploy
+# Do not commit real DB credentials. Pass them at deploy time instead of storing in this file.
+version = 0.1
+
+[default.deploy.parameters]
+stack_name = "ble-people-tracker"
+region = "us-east-2"
+capabilities = "CAPABILITY_IAM"
+# DB parameters: pass when deploying, e.g.:
+#   sam deploy --parameter-overrides "DBHost=your-rds.region.rds.amazonaws.com DBName=ble DBUser=ble DBPassword=yourpassword DBPort=5432"
+confirm_changeset = false
+resolve_s3 = true
