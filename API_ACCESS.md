@@ -3,7 +3,7 @@
 You need **two values** to call the API:
 
 1. **Base URL** – e.g. `https://rkali63t89.execute-api.us-east-2.amazonaws.com/Prod`
-2. **API key** – send in the **`x-api-key`** header on every request
+2. **API key** – send in the **`x-api-key`** header on every requests
 
 ---
 
