@@ -82,14 +82,10 @@ fi
 echo "Bastion public IP: $BASTION_IP"
 echo ""
 
-# 4. Get RDS endpoint and secret ARN from main stack
+# 4. Get RDS endpoint; password is self-managed (no Secrets Manager)
 DB_HOST=$(aws cloudformation describe-stacks --stack-name "$STACK_MAIN" --region "$REGION" \
   --query 'Stacks[0].Outputs[?OutputKey==`DBEndpoint`].OutputValue' --output text)
-SECRET_ARN=$(aws cloudformation describe-stacks --stack-name "$STACK_MAIN" --region "$REGION" \
-  --query 'Stacks[0].Outputs[?OutputKey==`DBSecretArn`].OutputValue' --output text)
-echo "Fetching DB password from Secrets Manager..."
-DB_PASSWORD=$(aws secretsmanager get-secret-value --secret-id "$SECRET_ARN" --region "$REGION" \
-  --query 'SecretString' --output text | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('password',''))")
+DB_PASSWORD="${DB_PASSWORD:-SAmtvs1234}"
 echo ""
 
 # 5. Print DBeaver values

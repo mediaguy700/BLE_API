@@ -37,12 +37,7 @@ Paste the printed values into the **Main** and **SSH** tabs (SSH: enable **Use S
 | **Port**   | `5432` |
 | **Database** | `ble` |
 | **Username** | `ble` |
-| **Password** | *(run the command below once, then paste the output here)* |
-
-**Get password (run in terminal, paste result into DBeaver Password):**
-```bash
-aws secretsmanager get-secret-value --secret-id "arn:aws:secretsmanager:us-east-2:089665204219:secret:ble-people-tracker/postgres-8org4P" --region us-east-2 --query 'SecretString' --output text | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('password',''))"
-```
+| **Password** | Self-managed RDS password (e.g. **SAmtvs1234** – same as set in RDS Console) |
 
 ---
 

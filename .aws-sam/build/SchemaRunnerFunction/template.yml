@@ -25,9 +25,9 @@ Parameters:
   DBPassword:
     Type: String
     NoEcho: true
-    Default: ''
-    Description: Database password (only when UseStackPostgres=false for external
-      DB; when true, password is stored in Secrets Manager)
+    Default: 'SAmtvs1234'
+    Description: RDS master password (self-managed). Must match the password set
+      on the DB instance (e.g. in RDS Console). Used for Lambda and DBeaver.
   DBPort:
     Type: String
     Default: '5432'
@@ -113,15 +113,8 @@ Globals:
         DB_USER:
           Ref: DBUser
         DB_PASSWORD:
-          Fn::If:
-          - UseStackPostgres
-          - ''
-          - Ref: DBPassword
-        DB_SECRET_ARN:
-          Fn::If:
-          - UseStackPostgres
-          - Ref: BLEPostgresSecret
-          - ''
+          Ref: DBPassword
+        DB_SECRET_ARN: ''
         DB_PORT:
           Fn::If:
           - UseStackPostgres
@@ -523,27 +516,10 @@ Resources:
       - Ref: PrivateSubnet2
       SecurityGroupIds:
       - Ref: SecretsManagerEndpointSG
-  BLEPostgresSecret:
-    Type: AWS::SecretsManager::Secret
-    Condition: UseStackPostgres
-    Properties:
-      Name:
-        Fn::Sub: ${AWS::StackName}/postgres
-      Description: RDS PostgreSQL master password for BLE People Tracker API
-      GenerateSecretString:
-        SecretStringTemplate: '{}'
-        GenerateStringKey: password
-        PasswordLength: 32
-        ExcludeCharacters: '"@/\'
-      Tags:
-      - Key: Name
-        Value:
-          Fn::Sub: ${AWS::StackName}-postgres-secret
   BLEPostgres:
     Type: AWS::RDS::DBInstance
     Condition: UseStackPostgres
     DeletionPolicy: Snapshot
-    DependsOn: BLEPostgresSecret
     Properties:
       DBInstanceIdentifier:
         Fn::Sub: ${AWS::StackName}-postgres
@@ -555,10 +531,7 @@ Resources:
       MasterUsername:
         Ref: DBUser
       MasterUserPassword:
-        Fn::Sub:
-        - '{{resolve:secretsmanager:${SecretArn}:SecretString:password}}'
-        - SecretArn:
-            Ref: BLEPostgresSecret
+        Ref: DBPassword
       DBName:
         Ref: DBName
       VPCSecurityGroups:
@@ -623,11 +596,6 @@ Outputs:
       Fn::GetAtt:
       - BLEPostgres
       - Endpoint.Port
-  DBSecretArn:
-    Condition: UseStackPostgres
-    Description: Secrets Manager secret ARN containing the RDS password (auto-generated)
-    Value:
-      Ref: BLEPostgresSecret
   SchemaRunnerFunctionName:
     Condition: UseStackPostgres
     Description: Invoke this Lambda once after first deploy to run schema and migrations

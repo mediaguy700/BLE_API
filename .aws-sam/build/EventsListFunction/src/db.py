@@ -31,19 +31,7 @@ def api_response(body, status_code=200):
 
 
 def get_connection_params():
-    """Build connection params from env (Secrets Manager or DB_*)."""
-    secret_arn = os.environ.get("DB_SECRET_ARN")
-    if secret_arn and boto3:
-        client = boto3.client("secretsmanager")
-        raw = client.get_secret_value(SecretId=secret_arn)
-        secret = json.loads(raw["SecretString"])
-        return {
-            "host": os.environ.get("DB_HOST"),
-            "port": os.environ.get("DB_PORT", "5432"),
-            "dbname": os.environ.get("DB_NAME", "ble"),
-            "user": secret.get("username", os.environ.get("DB_USER", "ble")),
-            "password": secret.get("password", ""),
-        }
+    """Build connection params from env (DB_PASSWORD = self-managed; no Secrets Manager)."""
     return {
         "host": os.environ.get("DB_HOST"),
         "port": os.environ.get("DB_PORT", "5432"),

@@ -34,7 +34,7 @@ The script prints **Host**, **Port**, **Database**, **Username**, **Password**, 
 | Port       | `5432` |
 | Database   | `ble` |
 | Username   | `ble` |
-| Password   | *(paste the password from the script output)* |
+| Password   | Self-managed RDS password (e.g. **SAmtvs1234**). Same as in RDS Console. |
 
 ### SSH tab (required)
 

@@ -20,11 +20,22 @@ def _parse_body(event):
         return None
 
 
+def _direction_filter(event):
+    """Return 'in' or 'out' if query param direction is set and valid, else None."""
+    q = event.get("queryStringParameters") or {}
+    d = (q.get("direction") or "").strip().lower()
+    return d if d in ("in", "out") else None
+
+
 def list_events(event, context):
+    direction = _direction_filter(event)
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM events ORDER BY 1")
+            if direction:
+                cur.execute("SELECT * FROM events WHERE direction = %s ORDER BY id", (direction,))
+            else:
+                cur.execute("SELECT * FROM events ORDER BY id")
             rows = cur.fetchall()
         return api_response({"events": [_event_row(r) for r in rows]})
     finally:
@@ -51,10 +62,17 @@ def list_reader_events(event, context):
     name = (event.get("pathParameters") or {}).get("readerName")
     if not name:
         return api_response({"error": "readerName required"}, 400)
+    direction = _direction_filter(event)
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM events WHERE reader_name = %s ORDER BY 1", (name,))
+            if direction:
+                cur.execute(
+                    "SELECT * FROM events WHERE reader_name = %s AND direction = %s ORDER BY id",
+                    (name, direction),
+                )
+            else:
+                cur.execute("SELECT * FROM events WHERE reader_name = %s ORDER BY id", (name,))
             rows = cur.fetchall()
         return api_response({"events": [_event_row(r) for r in rows]})
     finally:
@@ -65,10 +83,17 @@ def list_events_by_mac(event, context):
     mac = (event.get("pathParameters") or {}).get("mac")
     if not mac:
         return api_response({"error": "mac required"}, 400)
+    direction = _direction_filter(event)
     conn = get_conn()
     try:
         with conn.cursor() as cur:
-            cur.execute("SELECT * FROM events WHERE mac = %s ORDER BY 1", (mac,))
+            if direction:
+                cur.execute(
+                    "SELECT * FROM events WHERE mac = %s AND direction = %s ORDER BY id",
+                    (mac, direction),
+                )
+            else:
+                cur.execute("SELECT * FROM events WHERE mac = %s ORDER BY id", (mac,))
             rows = cur.fetchall()
         return api_response({"events": [_event_row(r) for r in rows]})
     finally:

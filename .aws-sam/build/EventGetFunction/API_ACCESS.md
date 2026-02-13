@@ -55,6 +55,19 @@ curl -s -X POST -H "x-api-key: YOUR_API_KEY" -H "Content-Type: application/json"
   "YOUR_BASE_URL/events"
 ```
 
+**Filter events by direction (in / out):**
+
+- All events, only "in": `GET /events?direction=in`
+- All events, only "out": `GET /events?direction=out`
+- Events at a reader, only "in": `GET /readers/Lobby-01/events?direction=in`
+- Events at a reader, only "out": `GET /readers/Lobby-01/events?direction=out`
+- Events for a MAC (person), only "in": `GET /events/person/AA:BB:CC:DD:EE:01?direction=in`
+
+```bash
+curl -s -H "x-api-key: YOUR_API_KEY" "YOUR_BASE_URL/events?direction=in"
+curl -s -H "x-api-key: YOUR_API_KEY" "YOUR_BASE_URL/readers/Lobby-01/events?direction=out"
+```
+
 ---
 
 ## In your application
