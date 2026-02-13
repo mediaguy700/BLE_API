@@ -1,0 +1,604 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Transform: AWS::Serverless-2016-10-31
+Description: BLE People Tracker API - Readers (lat/long) and Events (MAC = person)
+Parameters:
+  UseStackPostgres:
+    Type: String
+    Default: 'true'
+    AllowedValues:
+    - 'true'
+    - 'false'
+    Description: Create RDS PostgreSQL in this stack (true) or use external DB (false,
+      then set DBHost)
+  DBHost:
+    Type: String
+    Default: ''
+    Description: PostgreSQL host (only when UseStackPostgres=false)
+  DBName:
+    Type: String
+    Default: ble
+    Description: Database name (and RDS DB name when UseStackPostgres=true)
+  DBUser:
+    Type: String
+    Default: ble
+    Description: Database user (and RDS master username when UseStackPostgres=true)
+  DBPassword:
+    Type: String
+    NoEcho: true
+    Default: 'SAmtvs1234'
+    Description: RDS master password (self-managed). Must match the password set
+      on the DB instance (e.g. in RDS Console). Used for Lambda and DBeaver.
+  DBPort:
+    Type: String
+    Default: '5432'
+    Description: PostgreSQL port (ignored when UseStackPostgres=true; RDS uses 5432)
+  VpcSubnetIds:
+    Type: String
+    Default: ''
+    Description: Comma-separated subnet IDs for Lambda (when UseStackPostgres=false
+      and DB in VPC)
+  VpcSecurityGroupIds:
+    Type: String
+    Default: ''
+    Description: Comma-separated security group IDs for Lambda (when UseStackPostgres=false
+      and DB in VPC)
+  AllowedOrigin:
+    Type: String
+    Default: '*'
+    Description: Access-Control-Allow-Origin value (use * or your frontend origin)
+Conditions:
+  UseStackPostgres:
+    Fn::Equals:
+    - Ref: UseStackPostgres
+    - 'true'
+  VpcEnabled:
+    Fn::And:
+    - Fn::Not:
+      - Fn::Equals:
+        - Ref: UseStackPostgres
+        - 'true'
+    - Fn::Not:
+      - Fn::Equals:
+        - Ref: VpcSubnetIds
+        - ''
+Globals:
+  Api:
+    Cors:
+      AllowOrigin: '''*'''
+      AllowHeaders: '''Content-Type,X-Api-Key'''
+      AllowMethods: '''GET,POST,PUT,PATCH,DELETE,OPTIONS'''
+    Auth:
+      ApiKeyRequired: true
+      UsagePlan:
+        CreateUsagePlan: PER_API
+        UsagePlanName: BLEPeopleTrackerUsagePlan
+        Description: Usage plan for BLE People Tracker API
+        Throttle:
+          RateLimit: 500
+          BurstLimit: 1000
+  Function:
+    Timeout: 30
+    Runtime: python3.9
+    MemorySize: 512
+    VpcConfig:
+      Fn::If:
+      - UseStackPostgres
+      - SecurityGroupIds:
+        - Ref: LambdaSecurityGroup
+        SubnetIds:
+        - Ref: PrivateSubnet1
+        - Ref: PrivateSubnet2
+      - Fn::If:
+        - VpcEnabled
+        - SecurityGroupIds:
+            Fn::Split:
+            - ','
+            - Ref: VpcSecurityGroupIds
+          SubnetIds:
+            Fn::Split:
+            - ','
+            - Ref: VpcSubnetIds
+        - Ref: AWS::NoValue
+    Environment:
+      Variables:
+        DB_HOST:
+          Fn::If:
+          - UseStackPostgres
+          - Fn::GetAtt:
+            - BLEPostgres
+            - Endpoint.Address
+          - Ref: DBHost
+        DB_NAME:
+          Ref: DBName
+        DB_USER:
+          Ref: DBUser
+        DB_PASSWORD:
+          Ref: DBPassword
+        DB_SECRET_ARN: ''
+        DB_PORT:
+          Fn::If:
+          - UseStackPostgres
+          - Fn::GetAtt:
+            - BLEPostgres
+            - Endpoint.Port
+          - Ref: DBPort
+        ALLOWED_ORIGIN:
+          Ref: AllowedOrigin
+Resources:
+  ReadersListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.readers.list_readers
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        ListReaders:
+          Type: Api
+          Properties:
+            Path: /readers
+            Method: get
+    Metadata:
+      SamResourceId: ReadersListFunction
+  ReaderGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.readers.get_reader
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        GetReader:
+          Type: Api
+          Properties:
+            Path: /readers/{readerName}
+            Method: get
+    Metadata:
+      SamResourceId: ReaderGetFunction
+  ReaderEventsListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.events.list_reader_events
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        ListReaderEvents:
+          Type: Api
+          Properties:
+            Path: /readers/{readerName}/events
+            Method: get
+    Metadata:
+      SamResourceId: ReaderEventsListFunction
+  ReaderCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.readers.create_reader
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        CreateReader:
+          Type: Api
+          Properties:
+            Path: /readers
+            Method: post
+    Metadata:
+      SamResourceId: ReaderCreateFunction
+  ReaderUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.readers.update_reader
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        UpdateReader:
+          Type: Api
+          Properties:
+            Path: /readers/{readerName}
+            Method: put
+        PatchReader:
+          Type: Api
+          Properties:
+            Path: /readers/{readerName}
+            Method: patch
+    Metadata:
+      SamResourceId: ReaderUpdateFunction
+  ReaderDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.readers.delete_reader
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        DeleteReader:
+          Type: Api
+          Properties:
+            Path: /readers/{readerName}
+            Method: delete
+    Metadata:
+      SamResourceId: ReaderDeleteFunction
+  EventsListFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.events.list_events
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        ListEvents:
+          Type: Api
+          Properties:
+            Path: /events
+            Method: get
+    Metadata:
+      SamResourceId: EventsListFunction
+  EventGetFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.events.get_event
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        GetEvent:
+          Type: Api
+          Properties:
+            Path: /events/{id}
+            Method: get
+    Metadata:
+      SamResourceId: EventGetFunction
+  EventsByPersonFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.events.list_events_by_mac
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        EventsByPerson:
+          Type: Api
+          Properties:
+            Path: /events/person/{mac}
+            Method: get
+    Metadata:
+      SamResourceId: EventsByPersonFunction
+  EventCreateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.events.create_event
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        CreateEvent:
+          Type: Api
+          Properties:
+            Path: /events
+            Method: post
+    Metadata:
+      SamResourceId: EventCreateFunction
+  EventUpdateFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.events.update_event
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        UpdateEvent:
+          Type: Api
+          Properties:
+            Path: /events/{id}
+            Method: put
+        PatchEvent:
+          Type: Api
+          Properties:
+            Path: /events/{id}
+            Method: patch
+    Metadata:
+      SamResourceId: EventUpdateFunction
+  EventDeleteFunction:
+    Type: AWS::Serverless::Function
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.events.delete_event
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        DeleteEvent:
+          Type: Api
+          Properties:
+            Path: /events/{id}
+            Method: delete
+    Metadata:
+      SamResourceId: EventDeleteFunction
+  SchemaRunnerFunction:
+    Type: AWS::Serverless::Function
+    Condition: UseStackPostgres
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.run_schema.run_schema
+      Timeout: 120
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Description: Run database/schema.sql and migrations - invoke once after first
+        deploy
+    Metadata:
+      SamResourceId: SchemaRunnerFunction
+  BLEVpc:
+    Type: AWS::EC2::VPC
+    Condition: UseStackPostgres
+    Properties:
+      CidrBlock: 10.0.0.0/16
+      EnableDnsHostnames: true
+      EnableDnsSupport: true
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${AWS::StackName}-vpc
+  PrivateSubnet1:
+    Type: AWS::EC2::Subnet
+    Condition: UseStackPostgres
+    Properties:
+      VpcId:
+        Ref: BLEVpc
+      CidrBlock: 10.0.1.0/24
+      AvailabilityZone:
+        Fn::Select:
+        - 0
+        - Fn::GetAZs: ''
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${AWS::StackName}-subnet1
+  PrivateSubnet2:
+    Type: AWS::EC2::Subnet
+    Condition: UseStackPostgres
+    Properties:
+      VpcId:
+        Ref: BLEVpc
+      CidrBlock: 10.0.2.0/24
+      AvailabilityZone:
+        Fn::Select:
+        - 1
+        - Fn::GetAZs: ''
+      MapPublicIpOnLaunch: false
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${AWS::StackName}-subnet2
+  LambdaSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: UseStackPostgres
+    Properties:
+      GroupDescription: Lambda access for BLE API
+      VpcId:
+        Ref: BLEVpc
+      SecurityGroupEgress:
+      - IpProtocol: -1
+        CidrIp: '0.0.0.0/0'
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${AWS::StackName}-lambda-sg
+  RDSSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Condition: UseStackPostgres
+    Properties:
+      GroupDescription: RDS PostgreSQL for BLE API
+      VpcId:
+        Ref: BLEVpc
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 5432
+        ToPort: 5432
+        SourceSecurityGroupId:
+          Ref: LambdaSecurityGroup
+      - IpProtocol: tcp
+        FromPort: 5432
+        ToPort: 5432
+        CidrIp: 0.0.0.0/0
+        Description: Allow DBeaver / direct access (restrict to your IP in production)
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${AWS::StackName}-rds-sg
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Condition: UseStackPostgres
+    Properties:
+      DBSubnetGroupDescription: Subnets for BLE PostgreSQL
+      SubnetIds:
+      - Ref: PrivateSubnet1
+      - Ref: PrivateSubnet2
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${AWS::StackName}-db-subnets
+  SecretsManagerEndpointSG:
+    Type: AWS::EC2::SecurityGroup
+    Condition: UseStackPostgres
+    Properties:
+      GroupDescription: Allow Lambda to reach Secrets Manager VPC endpoint
+      VpcId:
+        Ref: BLEVpc
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 443
+        ToPort: 443
+        SourceSecurityGroupId:
+          Ref: LambdaSecurityGroup
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${AWS::StackName}-sm-endpoint-sg
+  SecretsManagerEndpoint:
+    Type: AWS::EC2::VPCEndpoint
+    Condition: UseStackPostgres
+    Properties:
+      VpcId:
+        Ref: BLEVpc
+      ServiceName:
+        Fn::Sub: com.amazonaws.${AWS::Region}.secretsmanager
+      VpcEndpointType: Interface
+      PrivateDnsEnabled: true
+      SubnetIds:
+      - Ref: PrivateSubnet1
+      - Ref: PrivateSubnet2
+      SecurityGroupIds:
+      - Ref: SecretsManagerEndpointSG
+  BLEPostgres:
+    Type: AWS::RDS::DBInstance
+    Condition: UseStackPostgres
+    DeletionPolicy: Snapshot
+    Properties:
+      DBInstanceIdentifier:
+        Fn::Sub: ${AWS::StackName}-postgres
+      Engine: postgres
+      EngineVersion: '15'
+      DBInstanceClass: db.t3.micro
+      AllocatedStorage: 20
+      StorageType: gp2
+      MasterUsername:
+        Ref: DBUser
+      MasterUserPassword:
+        Ref: DBPassword
+      DBName:
+        Ref: DBName
+      VPCSecurityGroups:
+      - Ref: RDSSecurityGroup
+      DBSubnetGroupName:
+        Ref: DBSubnetGroup
+      MultiAZ: false
+      PubliclyAccessible: false
+      Tags:
+      - Key: Name
+        Value:
+          Fn::Sub: ${AWS::StackName}-postgres
+  Api5xxAlarm:
+    Type: AWS::CloudWatch::Alarm
+    Properties:
+      AlarmName:
+        Fn::Sub: ${AWS::StackName}-Api5xx
+      AlarmDescription: API Gateway 5XX errors - check Lambda and DB connectivity
+      MetricName: 5XXError
+      Namespace: AWS/ApiGateway
+      Dimensions:
+      - Name: ApiId
+        Value:
+          Ref: ServerlessRestApi
+      - Name: Stage
+        Value: Prod
+      Statistic: Sum
+      Period: 60
+      EvaluationPeriods: 1
+      Threshold: 1
+      ComparisonOperator: GreaterThanOrEqualToThreshold
+      TreatMissingData: notBreaching
+Outputs:
+  ApiUrl:
+    Description: Base URL of the People Tracker API
+    Value:
+      Fn::Sub: https://${ServerlessRestApi}.execute-api.${AWS::Region}.amazonaws.com/Prod/
+    Export:
+      Name: BLEPeopleTrackerApiUrl
+  ApiKeyId:
+    Description: API Key ID - retrieve the key value in API Gateway console (API keys)
+      or via AWS CLI (get-api-key)
+    Value:
+      Ref: ServerlessRestApiApiKey
+  UsagePlanId:
+    Description: Usage plan ID for this API (for adding more keys)
+    Value:
+      Ref: ServerlessRestApiUsagePlan
+  DBEndpoint:
+    Condition: UseStackPostgres
+    Description: RDS PostgreSQL endpoint - run database/schema.sql and migrations
+      after first deploy (from a host that can reach this endpoint, e.g. bastion or
+      Lambda one-off)
+    Value:
+      Fn::GetAtt:
+      - BLEPostgres
+      - Endpoint.Address
+  DBPort:
+    Condition: UseStackPostgres
+    Description: RDS PostgreSQL port
+    Value:
+      Fn::GetAtt:
+      - BLEPostgres
+      - Endpoint.Port
+  SchemaRunnerFunctionName:
+    Condition: UseStackPostgres
+    Description: Invoke this Lambda once after first deploy to run schema and migrations
+      - aws lambda invoke --function-name <value> out.json
+    Value:
+      Ref: SchemaRunnerFunction

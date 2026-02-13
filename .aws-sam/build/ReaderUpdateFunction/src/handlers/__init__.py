@@ -1,1 +1,1 @@
-# Lambda handlers
+# BLE API handlers
