@@ -7,6 +7,6 @@ architecture = "x86_64"
 handler = "src.handlers.readers.list_readers"
 manifest_hash = ""
 packagetype = "Zip"
-functions = ["ReadersListFunction", "ReaderGetFunction", "ReaderEventsListFunction", "ReaderCreateFunction", "ReaderUpdateFunction", "ReaderDeleteFunction", "EventsListFunction", "EventGetFunction", "EventsByPersonFunction", "EventCreateFunction", "EventUpdateFunction", "EventDeleteFunction", "SchemaRunnerFunction"]
+functions = ["ReadersListFunction", "ReaderGetFunction", "ReaderEventsListFunction", "ReaderCreateFunction", "ReaderUpdateFunction", "ReaderDeleteFunction", "EventsListFunction", "EventGetFunction", "EventsByPersonFunction", "EventCreateFunction", "EventUpdateFunction", "EventDeleteFunction", "AuthRegisterFunction", "AuthLoginFunction", "AuthLogoutFunction", "AuthMeFunction", "AuthPasswordResetRequestFunction", "AuthPasswordResetConfirmFunction", "SchemaRunnerFunction"]
 
 [layer_build_definitions]

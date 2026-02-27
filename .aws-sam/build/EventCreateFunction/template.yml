@@ -65,7 +65,7 @@ Globals:
   Api:
     Cors:
       AllowOrigin: '''*'''
-      AllowHeaders: '''Content-Type,X-Api-Key'''
+      AllowHeaders: '''Content-Type,X-Api-Key,Authorization'''
       AllowMethods: '''GET,POST,PUT,PATCH,DELETE,OPTIONS'''
     Auth:
       ApiKeyRequired: true
@@ -375,6 +375,139 @@ Resources:
             Method: delete
     Metadata:
       SamResourceId: EventDeleteFunction
+  AuthRegisterFunction:
+    Type: AWS::Serverless::Function
+    Condition: UseStackPostgres
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.auth.register
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        AuthRegister:
+          Type: Api
+          Properties:
+            Path: /auth/register
+            Method: post
+    Metadata:
+      SamResourceId: AuthRegisterFunction
+  AuthLoginFunction:
+    Type: AWS::Serverless::Function
+    Condition: UseStackPostgres
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.auth.login
+      Environment:
+        Variables:
+          SESSION_DAYS: '7'
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        AuthLogin:
+          Type: Api
+          Properties:
+            Path: /auth/login
+            Method: post
+    Metadata:
+      SamResourceId: AuthLoginFunction
+  AuthLogoutFunction:
+    Type: AWS::Serverless::Function
+    Condition: UseStackPostgres
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.auth.logout
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        AuthLogout:
+          Type: Api
+          Properties:
+            Path: /auth/logout
+            Method: post
+    Metadata:
+      SamResourceId: AuthLogoutFunction
+  AuthMeFunction:
+    Type: AWS::Serverless::Function
+    Condition: UseStackPostgres
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.auth.me
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        AuthMe:
+          Type: Api
+          Properties:
+            Path: /auth/me
+            Method: get
+    Metadata:
+      SamResourceId: AuthMeFunction
+  AuthPasswordResetRequestFunction:
+    Type: AWS::Serverless::Function
+    Condition: UseStackPostgres
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.auth.password_reset_request
+      Environment:
+        Variables:
+          RESET_EXPIRY_HOURS: '1'
+          RETURN_RESET_TOKEN_FOR_TESTING: 'true'
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        AuthPasswordResetRequest:
+          Type: Api
+          Properties:
+            Path: /auth/password-reset/request
+            Method: post
+    Metadata:
+      SamResourceId: AuthPasswordResetRequestFunction
+  AuthPasswordResetConfirmFunction:
+    Type: AWS::Serverless::Function
+    Condition: UseStackPostgres
+    Properties:
+      CodeUri: .
+      Handler: src.handlers.auth.password_reset_confirm
+      Policies:
+      - Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Action: secretsmanager:GetSecretValue
+          Resource:
+            Fn::Sub: arn:aws:secretsmanager:${AWS::Region}:${AWS::AccountId}:secret:${AWS::StackName}*
+      Events:
+        AuthPasswordResetConfirm:
+          Type: Api
+          Properties:
+            Path: /auth/password-reset/confirm
+            Method: post
+    Metadata:
+      SamResourceId: AuthPasswordResetConfirmFunction
   SchemaRunnerFunction:
     Type: AWS::Serverless::Function
     Condition: UseStackPostgres

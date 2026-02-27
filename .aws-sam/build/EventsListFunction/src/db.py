@@ -24,7 +24,7 @@ def api_response(body, status_code=200):
         "headers": {
             "Content-Type": "application/json",
             "Access-Control-Allow-Origin": os.environ.get("ALLOWED_ORIGIN", "*"),
-            "Access-Control-Allow-Headers": "Content-Type,X-Api-Key",
+            "Access-Control-Allow-Headers": "Content-Type,X-Api-Key,Authorization",
         },
         "body": json.dumps(body, default=_json_serial) if not isinstance(body, str) else body,
     }
